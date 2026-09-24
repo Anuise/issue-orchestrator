@@ -55,7 +55,7 @@ Commands use the space-separated `--skill issue-orchestrator` syntax checked aga
 Prepare the feature workspace:
 
 ```text
-.scratch/aidms-v2.1.1/
+.scratch/example-feature/
 ├── spec.md
 └── issues/
     ├── 01-field-verify-downloads.md
@@ -78,13 +78,13 @@ Depends on: 01-field-verify-downloads.md
 In a runtime with slash-command skill invocation:
 
 ```text
-/issue-orchestrator .scratch/aidms-v2.1.1
+/issue-orchestrator .scratch/example-feature
 ```
 
 The portable natural-language invocation is:
 
 ```text
-Use issue-orchestrator on .scratch/aidms-v2.1.1.
+Use issue-orchestrator on .scratch/example-feature.
 Continue until all executable issues are complete or genuinely blocked.
 ```
 
