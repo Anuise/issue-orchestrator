@@ -91,6 +91,32 @@ To check the published GitHub source without installing:
 npx --yes skills@latest add Anuise/issue-orchestrator --list
 ```
 
+## GitHub publication checks
+
+Published the implementation commit `813ad6a0dc92ffcc41ba889e45ece42688a887ab` to the existing `origin/main`; `git ls-remote` confirmed the same SHA. Then ran the discovery command above against the actual GitHub shorthand: exactly one skill, `issue-orchestrator`, was found.
+
+Reinstalled from GitHub in both temporary agent projects:
+
+```sh
+npx --yes skills@latest add Anuise/issue-orchestrator --skill issue-orchestrator --agent claude-code --copy --yes
+npx --yes skills@latest add Anuise/issue-orchestrator --skill issue-orchestrator --agent codex --copy --yes
+```
+
+Both succeeded. All five installed files matched source contents after normalizing Git's Windows CRLF conversion; raw byte comparison differed only in line endings. YAML parsing and every installed relative reference passed. The local-source installation comparison earlier in this record was byte-for-byte.
+
+With the GitHub-source Codex installation, also ran:
+
+```sh
+npx --yes skills@latest update issue-orchestrator --project --yes
+npx --yes skills@latest list --agent codex --json
+```
+
+The update succeeded (`Updated 1 skill(s)`), and listing identified `Anuise/issue-orchestrator` as a project-scoped GitHub source. Rechecked installed contents after the update. This tests the update operation on the current published version, not migration from an older version. Global installations were not touched.
+
+## Cleanup limitation
+
+The two test directories were verified as direct children of the system temporary directory, with no reparse points. Automatic approval policy rejected recursive deletion, including a narrower attempt naming one exact verified directory, with `blocked by policy`. The directories were retained rather than bypassing that restriction. Their names are `issue-orchestrator-install-750b9896ecec436aa2550fc4ba5f9916` and `issue-orchestrator-live-6512255f38fc4aa1977f16a5f5e10fde`; they contain only this validation's temporary installations, fixture, and evidence. Manual cleanup remains outstanding.
+
 ## Limits
 
 Installation layout compatibility does not prove a host has isolated delegation enabled. No live Claude Code session was exercised. The runtime must provide fresh worker contexts, observe worker termination, and establish exclusive checkout ownership. The skill is not a daemon and cannot guarantee progress through host shutdown or exhausted usage limits. It deliberately has no concurrent feature scheduling or distributed locking service.
