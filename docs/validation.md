@@ -81,6 +81,36 @@ After every implementation worker terminated, a separate fresh read-only reviewe
 
 This live exercise covers sequential delegation, dependency ordering, per-issue verification, durable success records, dirty-file preservation, and final isolated review. Correction workers, forced crash recovery, external blockers, and mixed user/worker hunks in the same file were covered only by contract review, not by live fault injection. The isolated review and installation tests do not establish Claude Code execution behavior.
 
+## Controller-epoch refactor (2026-09-27)
+
+Issue #1 replaced the long-lived controller with restartable controller epochs. It also added durable `.orchestration/state.json`, fingerprint invalidation, write-ahead issue transitions, a fresh scheduler, a fresh read-only verifier (`references/verifier-contract.md`), and a filesystem mailbox with bounded agent returns. Everything else in this record describes the earlier version, unless this section says otherwise.
+
+Static checks after the refactor: `quick_validate.py` accepted the skill, YAML frontmatter parsed, every relative Markdown link in the skill, README, and this record resolved, and `git diff --check` reported no whitespace errors.
+
+An independent read-only agent traced the issue's ten stress scenarios against the refactored documents:
+
+- A: 50 independent issues
+- B: large issue bodies
+- C: huge worker logs
+- D: large diff
+- E: pending issue edited mid-run
+- F: new issue added
+- G: controller killed after the worker commit
+- H: controller killed after verification
+- I: correction chain
+- J: integration regression
+
+The first trace found 14 defects. Four mattered most:
+
+- `active_attempt` was never cleared, which blocked new selection.
+- The worker-handle write bypassed the write-ahead protocol and desynchronized recorded fingerprints.
+- Recovery could absorb an external issue edit as the controller's own.
+- Integration had no durable phase for recovery.
+
+All 14 were corrected: exact before/after hashes in `pending_transition`, per-verifier result directories, a persisted `verifier_retries` and `last_attempt`, durable integration phases, scheduler input fingerprints, attempt ids in payloads, canonical feature-relative issue paths, and hash-only write confirmation. A second independent review confirmed those fixes and found eight new defects in them, all corrected. Four were significant: an `incomplete` verification marked as accepted, integration retries sharing one directory, an integration `failed` result rerunning forever, and no way to rebuild an in-flight attempt when `state.json` is lost. The remaining four were first-run ordering, controller metadata misread as unattributable, an unbounded verifier retry during recovery, and an unbounded scheduler rerun. No third review was run after these fixes.
+
+These are decision traces, not live executions. No stress scenario was run with real agents. Whether nested dispatch works for the driver re-entry mode depends on the host. Context bounds are contract targets (about 1500 tokens for worker and verifier results, about 1000 for scheduler envelopes), not measured values.
+
 ## Reproduce installation validation
 
 Use a fresh temporary project for each agent. Run the local add/list commands above, inspect all installed files, parse `SKILL.md` frontmatter, and resolve its relative links. Avoid `--global` for this test. Delete only the temporary directories created for the test, after checking their resolved paths stay under the designated temporary parent.
