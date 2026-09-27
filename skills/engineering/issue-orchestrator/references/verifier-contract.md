@@ -45,7 +45,7 @@ Verify from disk and Git, never from the worker's confidence:
 2. If commits are expected, confirm each SHA exists, descends from the baseline HEAD, and is present on the candidate HEAD. Inspect **all commits and the cumulative diff** from the baseline, not just the last commit's summary. Check changed paths against `changed_files`, and inspect remaining staged/unstaged/untracked changes. Save the cumulative diff to `diff.patch` in the log directory.
 3. Compare the baseline user evidence with both the commit contents and the remaining worktree/index. Prove unrelated user changes were neither committed nor lost. Inspect relevant hunks to establish ticket scope; a filename summary is insufficient when the same file serves multiple issues.
 4. Record the spec and issue fingerprints you verified against.
-5. Map each acceptance criterion to inspected behavior and test evidence. Run additional lightweight checks when the evidence is incomplete, stale, or not independent. Prefer a targeted behavior test over repeating all tests on every ticket. Record exact commands and meaningful results with the verified HEAD. Relevant failed checks and unexplained skips are failed verification.
+5. Map each acceptance criterion to inspected behavior and test evidence. Report criteria in the issue's order. When the issue lists them as checkboxes (`- [ ]`/`- [x]` outside orchestrator-owned sections), set `index` to the item's 1-based position among those checkboxes and copy its text verbatim into `criterion`; otherwise set `index` to null. Run additional lightweight checks when the evidence is incomplete, stale, or not independent. Prefer a targeted behavior test over repeating all tests on every ticket. Record exact commands and meaningful results with the verified HEAD. Relevant failed checks and unexplained skips are failed verification.
 6. Confirm no adjacent ticket was silently implemented. If agent commits are explicitly forbidden, verify the exact diff/content snapshot and record that exception instead of inventing a SHA. Otherwise uncommitted implementation work prevents completion.
 
 Changes to the controller-owned paths in the payload belong to the controller; leave them out of scope and ownership checks. Unexpected ancestry, lost user changes, or unattributable changes are `blocked` with an `ownership` reason, not `failed`.
@@ -79,7 +79,7 @@ Write this JSON to the result destination. Use `verified`, `failed`, `blocked`, 
   "fingerprints": {"spec": "sha256:...", "issue": "sha256:..."},
   "commits": ["<full sha>"],
   "acceptance": [
-    {"criterion": "invalid token is rejected", "result": "passed", "evidence": "tests/auth_test.py::test_invalid_token"}
+    {"index": 1, "criterion": "invalid token is rejected", "result": "passed", "evidence": "tests/auth_test.py::test_invalid_token"}
   ],
   "checks": {
     "tests": {"result": "passed", "command": "<exact command>", "log": "<path>"},

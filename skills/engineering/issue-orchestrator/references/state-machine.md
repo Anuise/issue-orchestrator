@@ -15,7 +15,7 @@ When `state.json` disagrees with issue Markdown or Git, rebuild the affected sta
 
 Issue Markdown is the durable ticket tracker. Use only `pending`, `in_progress`, `blocked`, and `completed` in a single top-level `Status:` field near each issue's title. `ready` and `invalid` are computed classifications; worker `failed` is a result, not a fifth durable status.
 
-Preserve valid statuses and all original requirements. Add `Status: pending` when missing or unrecognized, recording the original value. Treat multiple conflicting status fields as invalid and request resolution; never guess which one wins. Verify existing completion evidence before using it as a prerequisite. Code presence by itself is insufficient.
+Preserve valid statuses and all original requirements. Add `Status: pending` when missing or unrecognized, recording the original value. Treat multiple conflicting status fields as invalid and request resolution; never guess which one wins. Verify existing completion evidence before using it as a prerequisite. Code presence by itself is insufficient, and so is a pre-ticked `- [x]` acceptance checkbox.
 
 ## `state.json`
 
@@ -137,7 +137,7 @@ These are metadata examples; substitute actual values. Persist all fields togeth
 
 ## Transition protocol
 
-Issue Markdown and `state.json` cannot be replaced together atomically, so every controller write to an issue file (normalization, attempt record, worker handle, status, completion record) is a write-ahead transition. Edit only the `Status:` line and orchestrator-owned sections.
+Issue Markdown and `state.json` cannot be replaced together atomically, so every controller write to an issue file (normalization, attempt record, worker handle, status, completion record) is a write-ahead transition. Edit only the `Status:` line, acceptance checkbox markers (see completion records below), and orchestrator-owned sections.
 
 1. Hash the issue and require it to equal the recorded fingerprint. A mismatch is an external change: run invalidation first. Write the new content to a same-directory temporary file and hash it.
 2. Write `pending_transition` with `fingerprint_before`, `fingerprint_after`, and the intended state change to `state.json`.
@@ -174,7 +174,7 @@ Verifiers run checks in the shared checkout, so a replacement verifier waits unt
 | `blocked` | Recorded unblock predicate is now demonstrably true | `pending`; retain history/counter |
 | `completed` | Verification demonstrates invalid completion or ticket regression | `pending` for a correction, or `blocked` if budget exhausted |
 
-For inferred dependencies, a pending issue can remain `pending` but classify as blocked; persist the edge and reason. Do not relabel a completed ticket just because a prerequisite is later reopened; reverify its affected acceptance criteria and reopen only on evidence.
+For inferred dependencies, a pending issue can remain `pending` but classify as blocked; persist the edge and reason. Do not relabel a completed ticket just because a prerequisite is later reopened; reverify its affected acceptance criteria and reopen only on evidence. When reopening a completed issue, in the same transition restore `- [ ]` on each criterion the regression evidence names; keep the other ticks.
 
 Allow an initial attempt plus **at most two correction attempts per issue**. Increment and persist `Corrections used` in the issue and `state.json` BEFORE dispatching each correction, including corrections after final integration. Worker failure, insufficient verification, and an interrupted attempt with uncertain effects use this same budget; restarting the session or replacing the controller does not reset it. A confirmed genuine prerequisite blocker does not consume a correction by itself: after it clears, resume with a fresh initial-kind attempt unless a correction was already being attempted. Count any dispatched correction conservatively if its outcome was lost. A verifier `incomplete` or unusable result is not a worker failure and consumes no correction; `verifier_retries` bounds it per [verification.md](verification.md). Reset an exhausted budget only on explicit user authorization, recorded in the issue; merely completing a dependency cannot reset exhaustion.
 
@@ -199,5 +199,7 @@ Verification:
 Verified at HEAD: <sha>
 Verification evidence: .orchestration/attempts/<attempt>/verifications/<verifier-id>/verification.json
 ```
+
+In the same transition, tick the acceptance checklist: for each `acceptance` entry with `result: passed` and a non-null `index`, change `- [ ]` to `- [x]` on the issue's checkbox at that index, and change nothing else on the line. Tick only when the line's text equals the entry's `criterion`; otherwise leave it unticked and list the index as a mismatch in the completion record.
 
 Store all implementation/correction SHAs when an issue spans multiple commits. Record test exit status and meaningful summaries; `skipped` without an accepted reason cannot satisfy a required check. Keep blocker history and attempt counters even after completion. Metadata may remain dirty during the run. At a safe boundary, the controller may commit only its own feature-tracking metadata when repository rules permit; never stage the entire feature directory or mix user-authored spec edits into that commit. Record the resulting HEAD in `state.json` so it is not mistaken for an external commit.
